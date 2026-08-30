@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+:root {
+  /* Wall-chart ground */
+  --chart-ground: #f5f3ec;
+  --chart-ground-raised: #fbfaf5;
+  --chart-ink: #211d16;
+  --chart-ink-muted: #6b6153;
+  --chart-rule: #d8d0bd;
+
+  /* Division category colors */
+  --division-b: #274b6d;
+  --division-b-tint: #e7edf3;
+  --division-c: #3f8f82;
+  --division-c-tint: #e8f2ef;
+
+  /* Attention / clear accent */
+  --accent: #b5432f;
+  --accent-tint: #f6e6e2;
+}
+
+@theme inline {
+  --color-chart-ground: var(--chart-ground);
+  --color-chart-ground-raised: var(--chart-ground-raised);
+  --color-chart-ink: var(--chart-ink);
+  --color-chart-ink-muted: var(--chart-ink-muted);
+  --color-chart-rule: var(--chart-rule);
+  --color-division-b: var(--division-b);
+  --color-division-b-tint: var(--division-b-tint);
+  --color-division-c: var(--division-c);
+  --color-division-c-tint: var(--division-c-tint);
+  --color-accent: var(--accent);
+  --color-accent-tint: var(--accent-tint);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+}
+
+body {
+  background: var(--chart-ground);
+  color: var(--chart-ink);
+  font-family: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--division-b);
+  color: var(--chart-ground-raised);
+}
+
+:focus-visible {
+  outline: 2px solid var(--division-b);
+  outline-offset: 2px;
+}
