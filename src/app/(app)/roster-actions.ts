@@ -78,3 +78,36 @@ export async function unseatStudent(
   revalidatePath("/");
   return { ok: true };
 }
+
+// Link an existing (unseated) student onto a team, without creating a new row.
+export async function reseatStudent(
+  teamId: string,
+  studentId: string
+): Promise<ActionResult> {
+  await requireUser();
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("team_members")
+    .insert({ team_id: teamId, student_id: studentId });
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  return { ok: true };
+}
+
+// Permanently remove a student from the roster. Fails if they are still
+// referenced by a pairing (FK is on delete restrict).
+export async function removeStudent(studentId: string): Promise<ActionResult> {
+  await requireUser();
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("students")
+    .delete()
+    .eq("id", studentId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/");
+  return { ok: true };
+}

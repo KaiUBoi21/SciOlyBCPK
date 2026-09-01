@@ -21,22 +21,34 @@ export default async function HubHome() {
   await requireUser();
   const supabase = await createClient();
 
-  const [{ data: teamRows }, { data: memberRows }] = await Promise.all([
-    supabase
-      .from("teams")
-      .select("id, division, name, code, capacity")
-      .order("division")
-      .order("code"),
-    supabase.from("team_members").select("team_id, students(id, full_name)"),
-  ]);
+  const [{ data: teamRows }, { data: memberRows }, { data: studentRows }] =
+    await Promise.all([
+      supabase
+        .from("teams")
+        .select("id, division, name, code, capacity")
+        .order("division")
+        .order("code"),
+      supabase.from("team_members").select("team_id, students(id, full_name)"),
+      supabase.from("students").select("id, division, full_name"),
+    ]);
 
   const membersByTeam = new Map<string, Member[]>();
+  const seatedIds = new Set<string>();
   for (const row of memberRows ?? []) {
     const student = row.students as Member | null;
     if (!student) continue;
+    seatedIds.add(student.id);
     const list = membersByTeam.get(row.team_id) ?? [];
     list.push(student);
     membersByTeam.set(row.team_id, list);
+  }
+
+  const unseatedByDivision = new Map<"B" | "C", Member[]>();
+  for (const student of studentRows ?? []) {
+    if (seatedIds.has(student.id)) continue;
+    const list = unseatedByDivision.get(student.division) ?? [];
+    list.push({ id: student.id, full_name: student.full_name });
+    unseatedByDivision.set(student.division, list);
   }
 
   const divisions: DivisionData[] = (["B", "C"] as const).map((code) => ({
@@ -53,6 +65,9 @@ export default async function HubHome() {
           a.full_name.localeCompare(b.full_name)
         ),
       })),
+    unseated: (unseatedByDivision.get(code) ?? []).sort((a, b) =>
+      a.full_name.localeCompare(b.full_name)
+    ),
   }));
 
   return <RosterBoard divisions={divisions} />;

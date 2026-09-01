@@ -7,13 +7,16 @@ export type Member = { id: string; full_name: string };
 
 type EventData = { id: string; name: string };
 
+// Events that run three competitors per team rather than the usual two.
+const THREE_PERSON_EVENTS = new Set(["Experimental Design", "Codebusters"]);
+
 type TeamData = {
   id: string;
   name: string;
   code: string;
   members: Member[];
-  // event_id -> [student1_id, student2_id | null]
-  pairings: Record<string, [string, string | null]>;
+  // event_id -> [student1_id, student2_id | null, student3_id | null]
+  pairings: Record<string, [string, string | null, string | null]>;
 };
 
 export type DivisionData = {
@@ -43,8 +46,9 @@ export default function PairingsBoard({
             Who&rsquo;s on each event
           </h1>
           <p className="mt-1 text-sm text-chart-ink-muted">
-            One partner pairing (1&ndash;2 students) per event, per team. Partners
-            are drawn from that team&rsquo;s roster. Changes save as you pick.
+            One partner pairing (1&ndash;2 students, or 3 for Experimental Design
+            and Codebusters) per event, per team. Partners are drawn from that
+            team&rsquo;s roster. Changes save as you pick.
           </p>
           {error && (
             <p className="mt-3 font-mono text-xs text-accent">{error}</p>
@@ -98,12 +102,12 @@ function TeamPairings({
   onError: (msg: string | null) => void;
 }) {
   const [selections, setSelections] = useState<
-    Record<string, [string, string]>
+    Record<string, [string, string, string]>
   >(() => {
-    const initial: Record<string, [string, string]> = {};
+    const initial: Record<string, [string, string, string]> = {};
     for (const event of division.events) {
       const pair = team.pairings[event.id];
-      initial[event.id] = [pair?.[0] ?? "", pair?.[1] ?? ""];
+      initial[event.id] = [pair?.[0] ?? "", pair?.[1] ?? "", pair?.[2] ?? ""];
     }
     return initial;
   });
@@ -113,8 +117,8 @@ function TeamPairings({
     (e) => selections[e.id]?.[0]
   ).length;
 
-  function change(eventId: string, slot: 0 | 1, studentId: string) {
-    const next: [string, string] = [...selections[eventId]] as [string, string];
+  function change(eventId: string, slot: 0 | 1 | 2, studentId: string) {
+    const next = [...selections[eventId]] as [string, string, string];
     next[slot] = studentId;
     setSelections((s) => ({ ...s, [eventId]: next }));
     onError(null);
@@ -147,11 +151,13 @@ function TeamPairings({
               <th className="px-4 py-2 font-medium">Event</th>
               <th className="px-4 py-2 font-medium">Partner 1</th>
               <th className="px-4 py-2 font-medium">Partner 2</th>
+              <th className="px-4 py-2 font-medium">Partner 3</th>
             </tr>
           </thead>
           <tbody>
             {division.events.map((event) => {
-              const [p1, p2] = selections[event.id] ?? ["", ""];
+              const [p1, p2, p3] = selections[event.id] ?? ["", "", ""];
+              const threePerson = THREE_PERSON_EVENTS.has(event.name);
               return (
                 <tr
                   key={event.id}
@@ -162,7 +168,7 @@ function TeamPairings({
                     <PartnerSelect
                       members={team.members}
                       value={p1}
-                      exclude={p2}
+                      exclude={[p2, p3]}
                       pending={pending}
                       colorVar={division.colorVar}
                       onChange={(v) => change(event.id, 0, v)}
@@ -172,11 +178,27 @@ function TeamPairings({
                     <PartnerSelect
                       members={team.members}
                       value={p2}
-                      exclude={p1}
+                      exclude={[p1, p3]}
                       pending={pending}
                       colorVar={division.colorVar}
                       onChange={(v) => change(event.id, 1, v)}
                     />
+                  </td>
+                  <td className="px-4 py-1.5">
+                    {threePerson ? (
+                      <PartnerSelect
+                        members={team.members}
+                        value={p3}
+                        exclude={[p1, p2]}
+                        pending={pending}
+                        colorVar={division.colorVar}
+                        onChange={(v) => change(event.id, 2, v)}
+                      />
+                    ) : (
+                      <span className="font-mono text-xs text-chart-ink-muted">
+                        &mdash;
+                      </span>
+                    )}
                   </td>
                 </tr>
               );
@@ -198,7 +220,7 @@ function PartnerSelect({
 }: {
   members: Member[];
   value: string;
-  exclude: string;
+  exclude: string[];
   pending: boolean;
   colorVar: string;
   onChange: (value: string) => void;
@@ -213,7 +235,7 @@ function PartnerSelect({
     >
       <option value="">&mdash;</option>
       {members.map((m) => (
-        <option key={m.id} value={m.id} disabled={m.id === exclude}>
+        <option key={m.id} value={m.id} disabled={exclude.includes(m.id)}>
           {m.full_name}
         </option>
       ))}

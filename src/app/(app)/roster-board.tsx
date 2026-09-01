@@ -1,7 +1,13 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { createTeam, seatStudent, unseatStudent } from "./roster-actions";
+import {
+  createTeam,
+  removeStudent,
+  reseatStudent,
+  seatStudent,
+  unseatStudent,
+} from "./roster-actions";
 
 export type Member = { id: string; full_name: string };
 
@@ -20,6 +26,7 @@ export type DivisionData = {
   colorVar: string;
   tintVar: string;
   teams: TeamData[];
+  unseated: Member[];
 };
 
 function symbolFor(name: string) {
@@ -178,6 +185,14 @@ export default function RosterBoard({
               </div>
 
               <NewTeamForm division={division} />
+
+              {division.unseated.length > 0 && (
+                <UnseatedStudents
+                  division={division}
+                  students={division.unseated}
+                  onError={setError}
+                />
+              )}
             </section>
           );
         })}
@@ -466,5 +481,92 @@ function NewTeamForm({ division }: { division: DivisionData }) {
         <p className="w-full font-mono text-xs text-accent">{error}</p>
       )}
     </form>
+  );
+}
+
+// Students on the roster who aren't seated on any team (e.g. after unseating).
+// Without this they'd be invisible in the UI.
+function UnseatedStudents({
+  division,
+  students,
+  onError,
+}: {
+  division: DivisionData;
+  students: Member[];
+  onError: (msg: string | null) => void;
+}) {
+  const [pending, startTransition] = useTransition();
+  const [picks, setPicks] = useState<Record<string, string>>({});
+
+  function seat(studentId: string) {
+    const teamId = picks[studentId];
+    if (!teamId) {
+      onError("Pick a team to seat this student on.");
+      return;
+    }
+    onError(null);
+    startTransition(async () => {
+      const result = await reseatStudent(teamId, studentId);
+      if ("error" in result) onError(result.error);
+    });
+  }
+
+  function remove(studentId: string) {
+    onError(null);
+    startTransition(async () => {
+      const result = await removeStudent(studentId);
+      if ("error" in result) onError(result.error);
+    });
+  }
+
+  return (
+    <div className="rounded-sm border border-dashed border-chart-rule bg-chart-ground-raised p-3">
+      <p className="font-mono text-[10px] tracking-wide text-chart-ink-muted uppercase">
+        Unseated &mdash; {division.name}
+      </p>
+      <ul className="mt-2 flex flex-col gap-1.5">
+        {students.map((student) => (
+          <li key={student.id} className="flex flex-wrap items-center gap-2">
+            <span className="text-sm text-chart-ink">{student.full_name}</span>
+            <select
+              value={picks[student.id] ?? ""}
+              disabled={pending || division.teams.length === 0}
+              onChange={(e) =>
+                setPicks((p) => ({ ...p, [student.id]: e.target.value }))
+              }
+              className="rounded-[2px] border border-chart-rule bg-white px-1.5 py-1 text-xs text-chart-ink outline-none focus-visible:outline-2 disabled:opacity-50"
+              style={{ outlineColor: `var(${division.colorVar})` }}
+            >
+              <option value="">
+                {division.teams.length === 0 ? "no teams" : "seat on…"}
+              </option>
+              {division.teams.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {division.code}-{t.code} · {t.name}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => seat(student.id)}
+              className="rounded-[2px] px-2 py-1 font-mono text-[11px] text-chart-ground-raised disabled:opacity-60"
+              style={{ backgroundColor: `var(${division.colorVar})` }}
+            >
+              seat
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => remove(student.id)}
+              aria-label={`Remove ${student.full_name} from the roster`}
+              className="font-mono text-[11px] text-chart-ink-muted hover:text-accent disabled:opacity-50"
+            >
+              delete
+            </button>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

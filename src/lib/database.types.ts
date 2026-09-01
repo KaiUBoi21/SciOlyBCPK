@@ -134,6 +134,7 @@ export type Database = {
           id: string
           student1_id: string
           student2_id: string | null
+          student3_id: string | null
           team_id: string
         }
         Insert: {
@@ -142,6 +143,7 @@ export type Database = {
           id?: string
           student1_id: string
           student2_id?: string | null
+          student3_id?: string | null
           team_id: string
         }
         Update: {
@@ -150,6 +152,7 @@ export type Database = {
           id?: string
           student1_id?: string
           student2_id?: string | null
+          student3_id?: string | null
           team_id?: string
         }
         Relationships: [
@@ -170,6 +173,13 @@ export type Database = {
           {
             foreignKeyName: "pairings_student2_id_fkey"
             columns: ["student2_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pairings_student3_id_fkey"
+            columns: ["student3_id"]
             isOneToOne: false
             referencedRelation: "students"
             referencedColumns: ["id"]

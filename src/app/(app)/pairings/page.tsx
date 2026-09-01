@@ -31,7 +31,7 @@ export default async function PairingsPage() {
     supabase.from("team_members").select("team_id, students(id, full_name)"),
     supabase
       .from("pairings")
-      .select("team_id, event_id, student1_id, student2_id"),
+      .select("team_id, event_id, student1_id, student2_id, student3_id"),
   ]);
 
   const membersByTeam = new Map<string, Member[]>();
@@ -43,11 +43,18 @@ export default async function PairingsPage() {
     membersByTeam.set(row.team_id, list);
   }
 
-  // team_id -> event_id -> [student1_id, student2_id | null]
-  const pairingsByTeam = new Map<string, Map<string, [string, string | null]>>();
+  // team_id -> event_id -> [student1_id, student2_id | null, student3_id | null]
+  const pairingsByTeam = new Map<
+    string,
+    Map<string, [string, string | null, string | null]>
+  >();
   for (const row of pairingRows ?? []) {
     const byEvent = pairingsByTeam.get(row.team_id) ?? new Map();
-    byEvent.set(row.event_id, [row.student1_id, row.student2_id]);
+    byEvent.set(row.event_id, [
+      row.student1_id,
+      row.student2_id,
+      row.student3_id,
+    ]);
     pairingsByTeam.set(row.team_id, byEvent);
   }
 

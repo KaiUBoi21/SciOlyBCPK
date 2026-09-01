@@ -6,8 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export type ActionResult = { error: string } | { ok: true };
 
-// Assign 0–2 partners to a team's event. An empty selection clears the pairing.
-// The first chosen student is stored as student1, the second as student2.
+// Assign 0–3 partners to a team's event. An empty selection clears the pairing.
+// Chosen students fill student1 / student2 / student3 in order.
 export async function setPairing(
   teamId: string,
   eventId: string,
@@ -35,6 +35,7 @@ export async function setPairing(
       event_id: eventId,
       student1_id: chosen[0],
       student2_id: chosen[1] ?? null,
+      student3_id: chosen[2] ?? null,
     },
     { onConflict: "team_id,event_id" }
   );
